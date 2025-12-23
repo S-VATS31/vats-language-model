@@ -3,17 +3,11 @@ import torch.nn as nn
 from torch import Tensor
 from torch.amp import autocast
 
-from gpu_setup import device
+from gpu_setup import device, dtype
 
 class RoPE(nn.Module):
     """RoPE for attention module."""
-    def __init__(
-        self,
-        head_dim: int,
-        rope_theta: float,
-        device: torch.device,
-        dtype: torch.dtype
-    ):
+    def __init__(self, head_dim: int, rope_theta: float):
         super().__init__()
 
         self.head_dim = head_dim
@@ -24,7 +18,7 @@ class RoPE(nn.Module):
 
         inv_freq = 1.0 / (
             rope_theta ** (
-                torch.arange(0, head_dim, 2, device=device, dtype=dtype) / head_dim
+                torch.arange(0, head_dim, 2, device=device, dtype=torch.float32) / head_dim
             )
         )
 

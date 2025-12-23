@@ -12,3 +12,13 @@ else:
 
 dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
 use_amp = device.type == "cuda"
+
+# try to get flash attention function
+try:
+    from flash_attn.flash_attn_interface import flash_attn_kvpacked_func
+    _use_flash_attn = True
+except ImportError:
+    flash_attn_kvpacked_func = None
+    _use_flash_attn = False
+
+USE_FLASH_ATTN = _use_flash_attn and device.dtype == "cuda"
