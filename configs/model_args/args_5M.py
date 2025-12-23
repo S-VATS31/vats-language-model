@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 @dataclass
 class ModelArgs:
-    """Extra small configuration of model arguments."""
+    """5 million parameter configuration of model arguments."""
     d_model: int = 256
     num_heads: int = 16
     query_groups: int = 2

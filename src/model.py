@@ -104,7 +104,7 @@ class CausalTransformer(nn.Module):
             Tensor: Logits tensor of shape [b, t, v].
         """
         with autocast(device_type=device.type, enabled=use_amp):
-            if input_ids.dtype != torch.int64:
+            if input_ids.dtype != torch.long:
                 input_ids = input_ids.long()
             x = self.dropout(self.embedding(input_ids)) # [b, t, d]
 
@@ -155,7 +155,7 @@ loss = logits.sum()
 loss.backward()
 for name, param in model.named_parameters():
     print(f"{name}: {param.grad}")
-print(logits.shape)
-print(logits.grad_fn)
-print(logits.device)
-print(logits.dtype)
+# print(logits.shape)
+# print(logits.grad_fn)
+# print(logits.device)
+# print(logits.dtype)
