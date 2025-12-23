@@ -10,7 +10,7 @@ def compute_loss(logits: Tensor, labels: Tensor) -> Tensor:
         labels (Tensor): Labels tensor of shape [b, t].
 
     Returns:
-        Tensor: 
+        Tensor: Scalar loss tensor.
     """
     assert logits.shape[:-1] == labels.shape
     if labels.dtype != torch.long:
