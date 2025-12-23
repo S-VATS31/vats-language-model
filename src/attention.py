@@ -671,9 +671,3 @@ def test_attn_block(grads:bool=True):
         for name, param in attn.named_parameters():
             print(f"{name}: {param.grad}")
     return out
-
-out = test_attn_block()
-print(out.shape)
-print(out.device)
-print(out.dtype)
-print(out.grad_fn)

@@ -30,6 +30,8 @@ class CausalTransformerBlock(nn.Module):
         use_flash_attn: bool = True,
         use_mqa: bool = False,
     ):
+        super().__init__()
+        
         self.mlp = MLPBlock(
             d_model=d_model,
             d_ffn=d_ffn,

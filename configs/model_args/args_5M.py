@@ -11,7 +11,7 @@ class ModelArgs:
     query_groups: int = 2
     d_ffn: int = 1024
     num_layers: int = 8
-    dropout_prob: float = 0.1
+    dropout_p: float = 0.1
     rope_theta: float = 10000.0
     rms_norm_eps: float = 1e-7
     qk_norm_eps: float = 1e-8
@@ -28,4 +28,6 @@ class ModelArgs:
     qk_norm_type: Literal["L2", "RMS"] = "L2"
     use_weight_tying: bool = True
     use_causal: bool = True
+    use_windowed_attn: bool = True
+    use_flash_attn: bool = True
     
