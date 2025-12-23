@@ -24,7 +24,7 @@ class MLP(nn.Module):
             dtype=dtype
         )
         self.weight2 = nn.Linear(
-            d_ffn, d_model, # project back to d_modesl
+            d_ffn, d_model, # project back to d_model
             bias=use_mlp_bias,
             device=device,
             dtype=dtype
