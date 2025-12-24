@@ -21,7 +21,7 @@ class KVCache:
         self.batch_size = None
         self.current_tokens = None
 
-    def _initialize(self, batch_size: int) -> None:
+    def initialize(self, batch_size: int) -> None:
         """Initialize cache using given batch size."""
         self.batch_size = batch_size
         self.current_tokens = 0
@@ -42,7 +42,7 @@ class KVCache:
     def update(self, k: Tensor, v: Tensor, layer_idx: int) -> None:
         """Update cache using new KV's with respect to specific layer."""
         if self.cache is None or k.size(0) != self.batch_size:
-            self._initialize(k.size(0))
+            self.initialize(k.size(0))
 
         # get new tokens from new input tensor
         new_tokens = k.size(2)

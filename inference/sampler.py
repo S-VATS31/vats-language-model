@@ -4,15 +4,13 @@ from torch import Tensor
 
 def _temp_sample(logits: Tensor, temp: float = 1.0) -> Tensor:
     """Apply temperature sampling to input logits."""
-    if temp > 0:
+    if temp <= 0:
         return logits
     return logits / temp
 
 def _top_k_sample(logits: Tensor, top_k: int = 0) -> Tensor:
     """Keep only the top-k logits, set others to -inf."""
-    if top_k <= 0:
-        return logits
-    if logits.size(-1) < top_k:
+    if top_k <= 0 or logits.size(-1) < top_k:
         return logits
     top_k_values, _ = torch.topk(logits, top_k, dim=-1)
     min_top_k = top_k_values[..., -1, None]
@@ -65,5 +63,5 @@ def get_next_tokens(
 
 B, V = 10, 32
 logits = torch.randn(B, V, device="mps", dtype=torch.float32)
-next_tokens = get_next_tokens(logits, False)
+next_tokens = get_next_tokens(logits, True)
 print(next_tokens.shape)
