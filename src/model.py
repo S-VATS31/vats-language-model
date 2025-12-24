@@ -153,8 +153,8 @@ padding_mask = torch.randint(
 logits = model(input_ids, padding_mask, True)
 loss = logits.sum()
 loss.backward()
-for name, param in model.named_parameters():
-    print(f"{name}: {param.grad}")
+# for name, param in model.named_parameters():
+#     print(f"{name}: {param.grad}")
 # print(logits.shape)
 # print(logits.grad_fn)
 # print(logits.device)

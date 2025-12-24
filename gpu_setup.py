@@ -10,7 +10,10 @@ elif _device_type == "mps" and torch.backends.mps.is_available():
 else:
     device = torch.device("cpu")
 
-dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
+dtype = (
+    torch.bfloat16 if device.type == "cuda" and torch.cuda.is_bf16_supported() 
+    else torch.float32
+)
 use_amp = device.type == "cuda"
 
 # try to get flash attention function
