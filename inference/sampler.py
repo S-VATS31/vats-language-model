@@ -60,8 +60,3 @@ def get_next_tokens(
         probs = F.softmax(logits, dim=-1)
         return torch.distributions.Categorical(probs).sample()
     return torch.argmax(logits, dim=-1)
-
-B, V = 10, 32
-logits = torch.randn(B, V, device="mps", dtype=torch.float32)
-next_tokens = get_next_tokens(logits, True)
-print(next_tokens.shape)
