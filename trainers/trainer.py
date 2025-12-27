@@ -15,7 +15,6 @@ from gpu_setup import device, use_amp
 def train_step(
     model: CausalTransformer,
     batch: dict[str, Tensor],
-    pad_token_id: int,
     grad_accum_steps: int,
     ignore_index: int = -100,
     scaler: GradScaler | None = None
@@ -25,7 +24,6 @@ def train_step(
     Args:
         model (CausalTransformer): Transformer architecture to get logits from.
         batch (dict[str, Tensor]): Dictionary containing `input_ids`, `attention_mask`, and `labels`.
-        pad_token_id (int): Tokenizers integer value for padded tokens.
         grad_accum_steps (int): Gradient accumulation to stimulate a larger batch size.
             Defaults to 1. `grad_accum_steps`>1 activated gradient accumulation.
         ignore_index (int): Value to be ignored when computing loss.
@@ -47,8 +45,8 @@ def train_step(
         with autocast(device_type=device.type, enabled=use_amp):
             logits = model(input_ids, attention_mask, use_cache=False)
             loss = compute_loss(logits, labels, ignore_index=ignore_index)
-        loss = loss / grad_accum_steps
         perplexity = compute_perplexity(loss)
+        loss /= grad_accum_steps
 
         # get tokens in step
         tokens_in_step = attention_mask.sum().item()
@@ -81,7 +79,6 @@ def train(
     dataloader: DataLoader,
     optimizer: AdamW,
     scheduler: LambdaLR,
-    pad_token_id: int,
     max_train_tokens: int,
     logging_steps: int,
     max_failed_steps: int,
@@ -97,7 +94,6 @@ def train(
         dataloader (DataLoader): Training dataloader containing examples.
         optimizer (AdamW): AdamW optimizer.
         scheduler (LambdaLR): Learning rate scheduler.
-        pad_token_id (int): Tokenizer integer value which signifies a pad token.
         max_train_tokens (int): Maximum number of tokens to train on.
         logging_steps (int): Logging is done every `logging_steps`.
         max_failed_steps (int): Maximum number of failed steps to end training.
@@ -132,7 +128,6 @@ def train(
         loss, ppl, tokens_seen, success = train_step(
             model=model,
             batch=batch,
-            pad_token_id=pad_token_id,
             grad_accum_steps=grad_accum_steps,
             ignore_index=ignore_index,
             scaler=scaler
