@@ -79,4 +79,4 @@ class MLPBlock(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         """Run forward pass of MLP block."""
         with autocast(device_type=device.type, enabled=use_amp):
-            return self.dropout(self.mlp(self.rms_norm(x)))
+            return x + self.dropout(self.mlp(self.rms_norm(x)))

@@ -46,12 +46,13 @@ def train_step(
         # compute loss
         with autocast(device_type=device.type, enabled=use_amp):
             logits = model(input_ids, attention_mask, use_cache=False)
-        loss = compute_loss(logits, labels, ignore_index=ignore_index)
+            loss = compute_loss(logits, labels, ignore_index=ignore_index)
+        loss = loss / grad_accum_steps
         perplexity = compute_perplexity(loss)
-        loss /= grad_accum_steps
 
         # get tokens in step
-        tokens_in_step = (input_ids != pad_token_id).sum().item()
+        tokens_in_step = attention_mask.sum().item()
+        assert tokens_in_step == input_ids.numel()
 
         # backprop
         if scaler is not None:
@@ -67,6 +68,7 @@ def train_step(
         )
 
     except Exception as e:
+        print(e)
         if "out of memory" in str(e):
             if device.type == "cuda":
                 torch.cuda.empty_cache()
@@ -141,8 +143,8 @@ def train(
             total_loss += loss
             total_ppl += ppl
             total_tokens_seen += tokens_seen
-            succesful_steps += 1
-            pbar.set_postfix({"tokens_seen": tokens_seen})
+            successful_steps += 1
+            pbar.set_postfix({"tokens_seen": total_tokens_seen})
             if total_tokens_seen >= max_train_tokens:
                 # TODO: add logging
                 stop_early = True
@@ -155,7 +157,7 @@ def train(
 
         # update weights
         if (step + 1) % grad_accum_steps == 0:
-            if succesful_steps > 0:
+            if successful_steps > 0:
                 if scaler is not None:
                     scaler.unscale_(optimizer)
                     nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_norm)
@@ -193,13 +195,13 @@ def train(
         optimizer.zero_grad(set_to_none=True)
 
     # return infinite loss and ppl if no success steps
-    if succesful_steps == 0:
+    if successful_steps == 0:
         # TODO: add logging
         return float("inf"), float("inf"), 0, False
     
     return (
-        total_loss / succesful_steps,
-        total_ppl / succesful_steps,
+        total_loss / successful_steps,
+        total_ppl / successful_steps,
         total_tokens_seen,
         stop_early
     )

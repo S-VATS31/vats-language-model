@@ -453,7 +453,6 @@ class CausalAttention(nn.Module):
             q, k, v,
             attn_mask=attn_mask,
             is_causal=use_causal if padding_mask is None else False,
-            scale=self.softmax_scale
         ) # [b, h, t_q, d]
         out = out.transpose(1, 2).contiguous().view(B, T_q, -1) # [b, t_q, d_model]
 
