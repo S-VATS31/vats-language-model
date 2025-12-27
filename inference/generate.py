@@ -8,5 +8,3 @@ def generate(prompt: str) -> str:
     tokenizer = get_tokenizer(model_args)
     generator = AutoregressiveTokenGenerator(model_args, tokenizer)
     return generator.generate_tokens(prompt)
-
-print(generate("hello world"))

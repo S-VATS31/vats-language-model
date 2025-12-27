@@ -22,7 +22,7 @@ class ModelArgs:
     use_grad_checkpoint: bool = True
     use_proj_bias: bool = False
     use_mqa: bool = False
-    softmax_scale: float = math.sqrt(256//16)
+    softmax_scale: float = 1 / math.sqrt(256//16)
     use_mlp_bias: bool = False
     use_qk_norm: bool = True
     qk_norm_type: Literal["L2", "RMS"] = "L2"

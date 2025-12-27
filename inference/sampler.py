@@ -51,7 +51,7 @@ def get_next_tokens(
         top_p (float): Top-p hyperparameter.
 
     Returns:
-        Tensor: Generated tokens of size [b,].
+        Tensor: Generated tokens of size [b].
     """
     if do_sample:
         logits = _temp_sample(logits, temp=temp)
