@@ -58,5 +58,5 @@ def get_next_tokens(
         logits = _top_k_sample(logits, top_k=top_k)
         logits = _top_p_sample(logits, top_p=top_p)
         probs = F.softmax(logits, dim=-1)
-        return torch.distributions.Categorical(probs).sample()
+        return torch.multinomial(probs)
     return torch.argmax(logits, dim=-1)
