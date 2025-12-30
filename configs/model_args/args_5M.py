@@ -26,7 +26,7 @@ class ModelArgs:
     use_mlp_bias: bool = False
     use_qk_norm: bool = True
     qk_norm_type: Literal["L2", "RMS"] = "L2"
-    use_weight_tying: bool = True
+    use_weight_tying: bool = False
     use_causal: bool = True
     use_windowed_attn: bool = True
     use_flash_attn: bool = True

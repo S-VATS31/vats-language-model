@@ -57,35 +57,44 @@ def save_checkpoint(
 
 def load_checkpoint(
     checkpoint_dir: str | Path,
-    model: nn.Module,
-    optimizer: AdamW,
-    scheduler: LambdaLR,
+    model: CausalTransformer | None = None,
+    optimizer: AdamW | None = None,
+    scheduler: LambdaLR | None = None,
     scaler: GradScaler | None = None,
+    load_only_args: bool = False
 ) -> dict[str, Union[int, float, dict]]:
     """Load a training checkpoint saved by `save_checkpoint`."""
     checkpoint_dir = Path(checkpoint_dir)
 
     try:
-        model_state = load_file(checkpoint_dir / "model.safetensors")
-        model.load_state_dict(model_state, strict=True)
-
         trainer_state = torch.load(
             checkpoint_dir / "trainer_state.pt",
             map_location=device,
         )
+        if not load_only_args:
+            if model is None or optimizer is None or scheduler is None:
+                raise ValueError(
+                    "model, optimizer, and scheduler must be provided when load_only_args=False"
+                )
+            
+            model_state = load_file(checkpoint_dir / "model.safetensors")
+            model.load_state_dict(model_state, strict=True)
 
-        optimizer.load_state_dict(trainer_state["optimizer_state_dict"])
-        scheduler.load_state_dict(trainer_state["scheduler_state_dict"])
+            optimizer.load_state_dict(trainer_state["optimizer_state_dict"])
+            scheduler.load_state_dict(trainer_state["scheduler_state_dict"])
 
-        if scaler is not None and "scaler_state_dict" in trainer_state:
-            scaler.load_state_dict(trainer_state["scaler_state_dict"])
+            if scaler is not None and "scaler_state_dict" in trainer_state:
+                scaler.load_state_dict(trainer_state["scaler_state_dict"])
 
-        return {
-            "tokens_seen": trainer_state["tokens_seen"],
-            "loss": trainer_state["loss"],
-            "training_args": trainer_state["training_args"],
-            "model_args": trainer_state["model_args"],
-        }
+            return {
+                "tokens_seen": trainer_state["tokens_seen"],
+                "loss": trainer_state["loss"],
+            }
+        else:
+            return {
+                "training_args": trainer_state["training_args"],
+                "model_args": trainer_state["model_args"]
+            }
 
     except Exception:
         # TODO: add logging

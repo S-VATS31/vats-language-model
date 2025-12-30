@@ -58,5 +58,12 @@ def get_next_tokens(
         logits = _top_k_sample(logits, top_k=top_k)
         logits = _top_p_sample(logits, top_p=top_p)
         probs = F.softmax(logits, dim=-1)
-        return torch.multinomial(probs)
+        return torch.multinomial(probs, num_samples=1).squeeze(-1)
     return torch.argmax(logits, dim=-1)
+
+B, V = 10, 32
+logits = torch.randn(
+    B, V, device="mps", dtype=torch.float32
+)
+next_tokens = get_next_tokens(logits, True)
+print(next_tokens.shape)

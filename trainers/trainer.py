@@ -36,43 +36,32 @@ def train_step(
             - int: Tokens seen, not including pad tokens.
             - bool: Whether the step was succesful.
     """
-    try:
-        input_ids = batch["input_ids"].to(device)
-        labels = batch["labels"].to(device)
-        attention_mask = batch["attention_mask"].to(device)
+    input_ids = batch["input_ids"].to(device)
+    labels = batch["labels"].to(device)
+    attention_mask = batch["attention_mask"].to(device)
 
-        # compute loss
-        with autocast(device_type=device.type, enabled=use_amp):
-            logits = model(input_ids, attention_mask, use_cache=False)
-            loss = compute_loss(logits, labels, ignore_index=ignore_index)
-        perplexity = compute_perplexity(loss)
-        loss /= grad_accum_steps
+    # compute loss
+    with autocast(device_type=device.type, enabled=use_amp):
+        logits = model(input_ids, attention_mask, use_cache=False)
+        loss = compute_loss(logits, labels, ignore_index=ignore_index)
+    perplexity = compute_perplexity(loss)
+    loss /= grad_accum_steps
 
-        # get tokens in step
-        tokens_in_step = attention_mask.sum().item()
-        assert tokens_in_step == input_ids.numel()
+    # get tokens in step
+    tokens_in_step = attention_mask.sum().item()
 
-        # backprop
-        if scaler is not None:
-            scaler.scale(loss).backward()
-        else:
-            loss.backward()
+    # backprop
+    if scaler is not None:
+        scaler.scale(loss).backward()
+    else:
+        loss.backward()
 
-        return (
-            loss.item() * grad_accum_steps,
-            perplexity,
-            tokens_in_step,
-            True # step was a success
-        )
-
-    except Exception as e:
-        print(e)
-        if "out of memory" in str(e):
-            if device.type == "cuda":
-                torch.cuda.empty_cache()
-            if device.type == "mps":
-                torch.mps.empty_cache()
-        return float("inf"), float("inf"), 0, False # failed step
+    return (
+        loss.item() * grad_accum_steps,
+        perplexity,
+        tokens_in_step,
+        True
+    )
     
 def train(
     model: CausalTransformer,
