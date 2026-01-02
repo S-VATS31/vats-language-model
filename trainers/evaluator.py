@@ -11,6 +11,9 @@ from src.model import CausalTransformer
 from losses.cross_entropy import compute_loss
 from metrics.perplexity import compute_perplexity
 from gpu_setup import device, use_amp
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__, "training.log")
 
 def evaluate(
     model: CausalTransformer,
@@ -66,10 +69,15 @@ def evaluate(
                         torch.cuda.empty_cache()
                     if device.type == "mps":
                         torch.mps.empty_cache()
-                return float("inf"), float("inf")
+                logger.info(str(e))
+                raise
             
     if succesful_batches == 0:
-        return float("inf"), float("inf")
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+        if device.type == "mps":
+            torch.mps.empty_cache()
+        raise RuntimeError("0 succesful evaluation batches.")
     
     return (
         total_loss / succesful_batches,

@@ -16,6 +16,9 @@ def setup_logger(
         name (str): Name of logger.
         log_file (str): File to be logged to.
         level (int): Level to be logged to. Defaults to `logging.INFO`.
+    
+    Returns:
+        logging.Logger: Logger object.
     """
     logger = logging.getLogger(name)
     logger.setLevel(level)

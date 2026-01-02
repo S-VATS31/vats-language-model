@@ -1,12 +1,21 @@
 import time
 
-import torch
 from torch.utils.data import Dataset
 from datasets import load_dataset
 
 from configs.model_args.args_5M import ModelArgs
 
 class TextDataset(Dataset):
+    """Text dataset class.
+    
+    Args:
+        tokenizer: HuggingFace tokenizer.
+        model_args (ModelArgs): Model hyperparameters.
+        dataset_name (str): Name of dataset to be downloaded.
+        split (str): Split of the dataset to train on.
+        max_samples (int, optional): Maximum samples to train on.
+            `None` trains on the entire dataset.
+    """
     def __init__(
         self,
         tokenizer,
@@ -20,7 +29,7 @@ class TextDataset(Dataset):
 
         # Load dataset with retry logic
         max_retries = 5
-        retry_delay = 5
+        retry_delay = 5 # seconds
         
         for attempt in range(max_retries):
             try:

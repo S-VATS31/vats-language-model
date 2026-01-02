@@ -176,7 +176,7 @@ class AutoregressiveTokenGenerator:
         if not prompt or not prompt.strip():
             return "Please enter a valid prompt."
         if self.model_args.max_new_tokens <= 0:
-            return prompt
+            return ""
         
         input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(device)
         with torch.no_grad():

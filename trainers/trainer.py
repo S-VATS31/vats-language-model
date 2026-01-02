@@ -11,6 +11,9 @@ from src.model import CausalTransformer
 from losses.cross_entropy import compute_loss
 from metrics.perplexity import compute_perplexity
 from gpu_setup import device, use_amp
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__, "training.log")
 
 def train_step(
     model: CausalTransformer,
@@ -36,32 +39,41 @@ def train_step(
             - int: Tokens seen, not including pad tokens.
             - bool: Whether the step was succesful.
     """
-    input_ids = batch["input_ids"].to(device)
-    labels = batch["labels"].to(device)
-    attention_mask = batch["attention_mask"].to(device)
+    try:
+        input_ids = batch["input_ids"].to(device)
+        labels = batch["labels"].to(device)
+        attention_mask = batch["attention_mask"].to(device)
 
-    # compute loss
-    with autocast(device_type=device.type, enabled=use_amp):
-        logits = model(input_ids, attention_mask, use_cache=False)
-        loss = compute_loss(logits, labels, ignore_index=ignore_index)
-    perplexity = compute_perplexity(loss)
-    loss /= grad_accum_steps
+        # compute loss
+        with autocast(device_type=device.type, enabled=use_amp):
+            logits = model(input_ids, attention_mask, use_cache=False)
+            loss = compute_loss(logits, labels, ignore_index=ignore_index)
+        perplexity = compute_perplexity(loss)
+        loss /= grad_accum_steps
 
-    # get tokens in step
-    tokens_in_step = attention_mask.sum().item()
+        # get tokens in step
+        tokens_in_step = attention_mask.sum().item()
 
-    # backprop
-    if scaler is not None:
-        scaler.scale(loss).backward()
-    else:
-        loss.backward()
+        # backprop
+        if scaler is not None:
+            scaler.scale(loss).backward()
+        else:
+            loss.backward()
 
-    return (
-        loss.item() * grad_accum_steps,
-        perplexity,
-        tokens_in_step,
-        True
-    )
+        return (
+            loss.item() * grad_accum_steps,
+            perplexity,
+            tokens_in_step,
+            True
+        )
+    except Exception as e:
+        if "out of memory" in str(e):
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+            if device.type == "mps":
+                torch.mps.empty_cache()
+        logger.info(str(e))
+        raise
     
 def train(
     model: CausalTransformer,
@@ -130,13 +142,13 @@ def train(
             successful_steps += 1
             pbar.set_postfix({"tokens_seen": total_tokens_seen})
             if total_tokens_seen >= max_train_tokens:
-                # TODO: add logging
+                logger.info(f"Tokens seen: {total_tokens_seen}, ending training.")
                 stop_early = True
                 break
         else:
             failed_steps += 1
             if failed_steps >= max_failed_steps:
-                # TODO: add logging
+                logger.info(f"Failed {failed_steps}, ending training.")
                 break
 
         # update weights
@@ -180,8 +192,11 @@ def train(
 
     # return infinite loss and ppl if no success steps
     if successful_steps == 0:
-        # TODO: add logging
-        return float("inf"), float("inf"), 0, False
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+        if device.type == "mps":
+            torch.mps.empty_cache()
+        raise RuntimeError("0 successful training steps.")
     
     return (
         total_loss / successful_steps,

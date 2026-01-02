@@ -13,8 +13,11 @@ from schedulers.scheduler import cosine_scheduler
 from trainers.trainer import train
 from trainers.evaluator import evaluate
 from utils.checkpoint_utils import save_checkpoint, load_checkpoint
+from utils.logger import setup_logger
 from inference.generate import generate
 from gpu_setup import device
+
+logger = setup_logger(__name__, log_file="training.log")
 
 def main(
     dataset_name: str,
@@ -36,6 +39,7 @@ def main(
     # initialize args
     model_args = ModelArgs()
     training_args = TrainingArgs()
+    logger.info("Initialized model and training arguments.")
 
     # check if we can resume from checkpoint
     if resume_from_checkpoint is not None:
@@ -52,9 +56,11 @@ def main(
 
     # initialize tokenizer
     tokenizer = get_tokenizer(model_args)
+    logger.info("Initialized tokenizer.")
 
     # initialize model
     model = CausalTransformer(model_args)
+    logger.info("Initialized model.")
 
     # initialize dataloader
     text_dataset = TextDataset(
@@ -64,6 +70,7 @@ def main(
         split=split,
         max_samples=max_samples
     )
+    logger.info("Initialized text dataset.")
 
     # 90% train, 10% validation
     train_len = int(0.9 * len(text_dataset))
@@ -85,6 +92,7 @@ def main(
         num_workers=training_args.num_workers,
         pin_memory=training_args.pin_memory
     )
+    logger.info("Initialized train and evaluation dataloaders.")
 
     # get total training steps
     num_training_steps = training_args.max_train_tokens // (
@@ -107,6 +115,7 @@ def main(
         num_cycles=training_args.num_cycles
     )
     scaler = GradScaler() if device.type == "cuda" else None
+    logger.info("Initialized optimizer, scheduler, and scaler.")
 
     # initialize losses and perplexity
     best_train_loss, best_train_ppl = float("inf"), float("inf")
@@ -133,6 +142,8 @@ def main(
         )
         total_tokens_seen = checkpoint_data.get("tokens_seen", total_tokens_seen)
         best_eval_loss = checkpoint_data.get("loss", best_eval_loss)
+
+    logger.info("Starting training")
         
     # Training started
     while total_tokens_seen < training_args.max_train_tokens and not stop_early:
@@ -149,7 +160,7 @@ def main(
             ignore_index=training_args.ignore_index,
             scaler=scaler
         )
-        eval_loss, eval_ppl, = evaluate(
+        eval_loss, eval_ppl = evaluate(
             model=model, 
             dataloader=eval_loader, 
             ignore_index=training_args.ignore_index, 
@@ -184,10 +195,14 @@ def main(
                     scaler=scaler,
                     is_best=True
                 )
+                logger.info(f"Saved new best checkpoint: {best_path}")
             else:
                 early_stopping_counter += 1
+                logger.info(f"Early stopping counter:   {early_stopping_counter}")
+                logger.info(f"Early stopping threshold: {early_stopping_threshold}")
 
             if early_stopping_counter >= early_stopping_threshold:
+                logger.info(f"Early stopping activated, best evaluation loss: {best_eval_loss}")
                 break
         
         # Save regular checkpoint
@@ -204,13 +219,14 @@ def main(
                 scaler=scaler,
                 is_best=False
             )
+            logger.info(f"Regular checkpoint saved to {save_path}")
             
         # Test generation every n tokens for coherent generation
         if total_tokens_seen - last_generation_tokens >= training_args.generation_frequency:
             last_generation_tokens = total_tokens_seen
             prompt = "Once upon a time, "
             generated_text = generate(prompt)
-            print(generated_text)
+            logger.info(f"{prompt} -> {generated_text}")
 
         # Clear CUDA cache every n tokens
         if total_tokens_seen - last_clear_cache_tokens >= training_args.clear_cache_freq:
@@ -219,7 +235,13 @@ def main(
                 torch.cuda.empty_cache()
             if device.type == "mps":
                 torch.mps.empty_cache()
-            
+
+    logger.info("Training Completed:")
+    logger.info(f"Best Training Loss: {best_train_loss:.4f}")
+    logger.info(f"Best Training Perplexity: {best_train_ppl:.4f}")
+    logger.info(f"Best Evaluation Loss: {best_eval_loss:.4f}")
+    logger.info(f"Best Evaluation Perplexity: {best_eval_ppl:.4f}")
+
 if __name__ == "__main__":
     main(
         dataset_name="tiiuae/falcon-refinedweb",

@@ -2,6 +2,9 @@ import torch
 from torch import Tensor
 
 from gpu_setup import device, dtype
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__,  "inference.log")
 
 class KVCache:
     """KV caching module."""
@@ -51,11 +54,13 @@ class KVCache:
         if self.current_tokens + new_tokens > self.max_tokens:
             current_tokens_space = self.max_tokens - self.current_tokens
             if current_tokens_space <= 0:
+                logger.info("No space in cache left, exiting.")
                 return
             
             # truncate to current tokens space over seqlen dim
             k = k[:, :, :current_tokens_space]
             v = v[:, :, :current_tokens_space]
+            logger.info(f"Truncated {new_tokens-current_tokens_space} tokens.")
             new_tokens = current_tokens_space
 
         # update cache over seqlen dim
