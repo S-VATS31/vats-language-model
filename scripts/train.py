@@ -20,7 +20,8 @@ from gpu_setup import device
 logger = setup_logger(__name__, log_file="training.log")
 
 def main(
-    dataset_name: str,
+    dataset_names: list[str],
+    interleave_datasets: bool = True,
     resume_from_checkpoint: str | None = None,
     early_stopping_threshold: int = 3,
     split: str = "train",
@@ -66,9 +67,10 @@ def main(
     text_dataset = TextDataset(
         tokenizer=tokenizer,
         model_args=model_args,
-        dataset_name=dataset_name,
+        dataset_names=dataset_names,
         split=split,
-        max_samples=max_samples
+        max_samples=max_samples,
+        interleave=interleave_datasets
     )
     logger.info("Initialized text dataset.")
 
@@ -244,9 +246,10 @@ def main(
 
 if __name__ == "__main__":
     main(
-        dataset_name="tiiuae/falcon-refinedweb",
+        dataset_names=["tiiuae/falcon-refinedweb"],
+        interleave_datasets=True,
         resume_from_checkpoint=None,
         early_stopping_threshold=3,
         split="train",
-        max_samples=10_000
+        max_samples=100_000
     )

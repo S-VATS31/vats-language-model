@@ -1,9 +1,11 @@
 import time
-
 from torch.utils.data import Dataset
-from datasets import load_dataset
+from datasets import load_dataset, concatenate_datasets, interleave_datasets
 
 from configs.model_args.args_5M import ModelArgs
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__, "training.log")
 
 class TextDataset(Dataset):
     """Text dataset class.
@@ -20,45 +22,40 @@ class TextDataset(Dataset):
         self,
         tokenizer,
         model_args: ModelArgs,
-        dataset_name: str,
+        dataset_names: list[str],
         split: str,
-        max_samples: int | None = None
+        max_samples: int | None = None,
+        interleave: bool = True
     ):
         self.tokenizer = tokenizer
         self.model_args = model_args
-
-        # Load dataset with retry logic
-        max_retries = 5
-        retry_delay = 5 # seconds
         
-        for attempt in range(max_retries):
-            try:
-                self.ds = load_dataset(
-                    dataset_name, 
-                    split=split, 
-                    streaming=True
-                )
-                break
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                else:
-                    raise
+        # initialize list of loaded datasets
+        datasets = []
+
+        if not dataset_names:
+            raise ValueError("Got 0 dataset names.")
+
+        for i, dataset_name in enumerate(dataset_names):
+            dataset = load_dataset(
+                dataset_name, 
+                split=split, 
+                streaming=True
+            )
+            logger.info(f"Dataset {i+1}: {dataset_name}")
+            datasets.append(dataset)
+
+        if interleave:
+            self.ds = interleave_datasets(datasets)
+        else:
+            self.ds = concatenate_datasets(datasets)
 
         self.dataset = []
         if max_samples is not None:
             for i, example in enumerate(self.ds):
                 if i >= max_samples:
                     break
-                
-                max_example_retries = 3
-                for attempt in range(max_example_retries):
-                    try:
-                        self.dataset.append(example)
-                        break
-                    except Exception as e:
-                        if attempt < max_example_retries - 1:
-                            time.sleep(2)
+                self.dataset.append(example)
         else:
             for i, example in enumerate(self.ds):
                 self.dataset.append(example)
